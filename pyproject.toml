@@ -1,7 +1,14 @@
 [project]
-name = "hlpp"
+name = "hlp"
 version = "0.1.0"
-description = "High-Level Programming Project"
+description = "High-Levl Programming Project"
 readme = "README.MD"
-requires-python = ">=3.14"
-dependencies = []
+requires-python = ">=3.13"
+dependencies = [
+    "manimgl>=1.7.2",
+]
+
+[tool.uv.workspace]
+members = [
+    "sss",
+]
