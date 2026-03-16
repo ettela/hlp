@@ -321,7 +321,7 @@ requires-dist = [
     { name = "rich", specifier = ">=14.3.3" },
     { name = "scipy", specifier = ">=1.17.1" },
     { name = "screeninfo", specifier = ">=0.8.1" },
-    { name = "setuptools", specifier = "==67.0.0" },
+    { name = "setuptools", specifier = "==78.1.1" },
     { name = "skia-pathops", specifier = ">=0.9.2" },
     { name = "svgelements", specifier = ">=1.8.1" },
     { name = "sympy", specifier = ">=1.14.0" },
@@ -1079,11 +1079,11 @@ wheels = [
 
 [[package]]
 name = "setuptools"
-version = "67.0.0"
+version = "78.1.1"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/fe/db/68d856066c59bd9f05e827c3cf80164d870b8b6af37dc5ad6c87a71d20f2/setuptools-67.0.0.tar.gz", hash = "sha256:883131c5b6efa70b9101c7ef30b2b7b780a4283d5fc1616383cdf22c83cbefe6", size = 2474556, upload-time = "2023-01-28T19:01:05.549Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/81/9c/42314ee079a3e9c24b27515f9fbc7a3c1d29992c33451779011c74488375/setuptools-78.1.1.tar.gz", hash = "sha256:fcc17fd9cd898242f6b4adfaca46137a9edef687f43e6f78469692a5e70d851d", size = 1368163, upload-time = "2025-04-19T18:23:36.68Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/bf/27/969c914650fdf0d08b0b92bdbddfc08bea9df6d86aeefd75ba4730f50bc9/setuptools-67.0.0-py3-none-any.whl", hash = "sha256:9d790961ba6219e9ff7d9557622d2fe136816a264dd01d5997cfc057d804853d", size = 1082073, upload-time = "2023-01-28T19:01:03.31Z" },
+    { url = "https://files.pythonhosted.org/packages/90/99/158ad0609729111163fc1f674a5a42f2605371a4cf036d0441070e2f7455/setuptools-78.1.1-py3-none-any.whl", hash = "sha256:c3a9c4211ff4c309edb8b8c4f1cbfa7ae324c4ba9f91ff254e3d305b9fd54561", size = 1256462, upload-time = "2025-04-19T18:23:34.525Z" },
 ]
 
 [[package]]
