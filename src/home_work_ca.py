@@ -28,10 +28,7 @@ def main(test_speed: list[float]):
     speed_info = lambda v: f"测试速度: {v:.2f} m/s \t 状态: {warn_speed(v)}"
 
     print(f"{" 速度测试 ":=^42}")
-    try:
-        input_bool = input("是否手动输入测试速度?（y/n）: ").lower() == "y"
-    except:
-        input_bool = False
+    input_bool = input("是否手动输入测试速度?（y/n）: ").lower() == "y"
 
     while input_bool:
         try:
