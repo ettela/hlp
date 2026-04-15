@@ -1,11 +1,12 @@
 def input_list(prompt: str, num: int) -> list[int]:
     error_msg = f"错误：请输入 {num} 个整数。"
+
     while True:
         _list = input(f"{prompt} （输入 {num} 个整数，空格分隔）：").split()
         if len(_list) != num:
             print(error_msg)
             continue
-        
+
         try:
             return list(map(int, _list))
         except ValueError:
