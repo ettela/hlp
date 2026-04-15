@@ -16,7 +16,7 @@ def main():
     list1 = input_list("输入 list1", 4)
     list2 = input_list("输入 list2", 3)
     list1.extend(list2)
-    list1.append(99)
+    list1.append(90)
     list1.append(100)
     list1.sort(reverse=True)
     print(f"{list1 = }")
