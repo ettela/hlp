@@ -39,3 +39,8 @@ dependencies = [
     "typing-extensions ; python_full_version < '3.11'",
     "validators>=0.35.0",
 ]
+
+[tool.uv.workspace]
+members = [
+    "hwenv",
+]
