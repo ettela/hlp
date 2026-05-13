@@ -5,6 +5,4 @@ def print_char(char1, char2, number):
 
 
 if __name__ == "__main__":
-    print_char("A", "Z", 5)
-    print()  # Print a new line
     print_char("!", "9", 10)
