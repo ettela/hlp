@@ -3,7 +3,6 @@ import textwrap
 import zipfile
 from pathlib import Path
 
-
 SCRIPT_DIR = Path(__file__).resolve().parent
 DEFAULT_OUT_DIR = SCRIPT_DIR / "dist"
 DEFAULT_ZIP = DEFAULT_OUT_DIR / "methods.zip"
