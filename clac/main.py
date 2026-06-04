@@ -21,17 +21,17 @@ def main():
         rect_win = tk.Toplevel(win)
         rect_win.title("矩形面积计算")
         tk.Label(rect_win, text="宽:").grid(row=0, column=0)
-        w_ent = tk.Entry(rect_win)
-        w_ent.grid(row=0, column=1)
+        we = tk.Entry(rect_win)
+        we.grid(row=0, column=1)
         tk.Label(rect_win, text="高:").grid(row=1, column=0)
-        h_ent = tk.Entry(rect_win)
-        h_ent.grid(row=1, column=1)
+        he = tk.Entry(rect_win)
+        he.grid(row=1, column=1)
         tk.Label(rect_win, text="面积:").grid(row=2, column=0)
         res = tk.Entry(rect_win)
         res.grid(row=2, column=1)
 
         def calc_rect():
-            a = float(w_ent.get()) * float(h_ent.get())
+            a = float(we.get()) * float(he.get())
             res.delete(0, tk.END)
             res.insert(0, str(f"{a:.4f}"))
 
@@ -78,12 +78,12 @@ def main():
             ans.delete(0, tk.END)
             ready = False
 
-    def append(token: str) -> None:
+    def append(t) -> None:
         start_new_input()
         text = ans.get()
-        if text == "0" and token not in (".", ")"):
+        if text == "0" and t not in (".", ")"):
             ans.delete(0, tk.END)
-        ans.insert(tk.INSERT, token)
+        ans.insert(tk.INSERT, t)
 
     def clear() -> None:
         ans.delete(0, tk.END)
