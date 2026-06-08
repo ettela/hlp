@@ -1,141 +1,340 @@
-import math
 import tkinter as tk
+import re
+
+# from tkinter import ttk
+from math import sin, cos, tan, log, exp, sqrt, factorial, pi, e
+from dataclasses import dataclass, field
+
+HISTORY_LIMIT = 20
+
+
+@dataclass
+class CalcState:
+    expr: str = ""
+    result: str = ""
+    history: list[str] = field(default_factory=list)
+    mode: str = "普通"
+    just_eval: bool = False
 
 
 def safe_eval(expr: str) -> str:
-    expr = expr.strip()
-    if not expr:
-        return "0"
-    allowed = {k: getattr(math, k) for k in dir(math) if not k.startswith("_")}
-    allowed.update({"pi": math.pi, "e": math.e})
-    value = eval(expr, {"__builtins__": {}}, allowed)
-    return str(value)
+    expr = re.sub(r"(\d+(?:\.\d+)?)!", lambda m: f"factorial({m.group(1)})", expr)
+    clean = (
+        expr.replace("×", "*")
+        .replace("÷", "/")
+        .replace("^", "**")
+        .replace("π", str(pi))
+        .replace("e", str(e))
+    )
+    ns = {
+        "sin" : sin,
+        "cos" : cos,
+        "tan" : tan,
+        "ln"  : log,
+        "exp" : exp,
+        "sqrt": sqrt,
+        "pi"  : pi,
+        "factorial"   : factorial,
+        "__builtins__": {},
+    }
+    try:
+        val = eval(clean, ns)
+        return (
+            str(int(val))
+            if isinstance(val, float) and val.is_integer()
+            else str(round(val, 10)).rstrip("0").rstrip(".")
+        )
+    except ZeroDivisionError:
+        return "零不能做除数"
+    except Exception:
+        return "错误"
+
+
+def push_history(state, entry):
+    if entry and "错误" not in entry:
+        if entry not in state.history:
+            state.history.append(entry)
+        if len(state.history) > HISTORY_LIMIT:
+            state.history.pop(0)
+
+
+def show_main(root, container):
+    root.unbind("<Key>")
+    clear_frame(container)
+    tk.Label(container, text="计算器应用", font=("黑体", 18, "bold")).pack(pady=30)
+    tk.Button(
+        container,
+        text="计算器",
+        width=20,
+        height=2,
+        command=lambda: show_calc(root, container),
+    ).pack(pady=8)
+    tk.Button(
+        container,
+        text="面积计算",
+        width=20,
+        height=2,
+        command=lambda: show_area(root, container),
+    ).pack(pady=8)
+    tk.Button(container, text="退出", width=20, height=2, command=root.destroy).pack(
+        pady=8
+    )
+
+
+def show_calc(root, container):
+    clear_frame(container)
+    state = CalcState()
+
+    # 显示区
+    expr_var = tk.StringVar()
+    result_var = tk.StringVar()
+
+    top_bar = tk.Frame(container)
+    top_bar.pack(fill="x", pady=(4, 0))
+    tk.Button(top_bar, text="← 返回", command=lambda: show_main(root, container)).pack(
+        side="left", padx=4
+    )
+    mode_lbl = tk.Label(top_bar, text="普通模式")
+    mode_lbl.pack(side="right", padx=8)
+
+    entry = tk.Entry(
+        container, textvariable=expr_var, font=("Consolas", 16), justify="right"
+    )
+    entry.pack(fill="x", padx=6, pady=(6, 0))
+    tk.Label(
+        container, textvariable=result_var, font=("Consolas", 12), anchor="e"
+    ).pack(fill="x", padx=8)
+
+    # 按键逻辑
+    def append_ch(ch):
+        if state.just_eval:
+            if ch in "0123456789.(π":
+                entry.delete(0, "end")
+                result_var.set("")
+            else:
+                entry.delete(0, "end")
+                entry.insert(0, state.result)
+            state.just_eval = False
+        idx = entry.index("insert")
+        entry.insert(idx, ch)
+        state.expr = entry.get()
+
+    def clear():
+        state.expr = ""
+        state.result = ""
+        state.just_eval = False
+        entry.delete(0, "end")
+        result_var.set("")
+
+    def backspace():
+        if state.just_eval:
+            state.just_eval = False
+        idx = entry.index("insert")
+        if idx > 0:
+            entry.delete(idx - 1, idx)
+        state.expr = entry.get()
+
+    def evaluate():
+        state.expr = expr_var.get()
+        if not state.expr:
+            return
+        res = safe_eval(state.expr)
+        state.result = res
+        result_var.set(f"= {res}")
+        push_history(state, f"{state.expr} = {res}")
+        state.just_eval = True
+
+    def show_history():
+        win = tk.Toplevel(root)
+        win.title("历史记录")
+        win.geometry("300x340")
+        lb = tk.Listbox(win, font=("Consolas", 11))
+        lb.pack(fill="both", expand=True, padx=8, pady=8)
+        for h in reversed(state.history):
+            lb.insert("end", h)
+
+        def use(_=None):
+            sel = lb.curselection()
+            if sel:
+                expr = lb.get(sel[0]).split(" = ")[0]
+                state.expr = expr
+                state.just_eval = False
+                expr_var.set(expr)
+                win.destroy()
+
+        lb.bind("<Double-Button-1>", use)
+        tk.Button(win, text="使用选中", command=use).pack(pady=4)
+
+    def toggle_mode():
+        state.mode = "科学" if state.mode == "普通" else "普通"
+        mode_lbl.config(text=f"{state.mode}模式")
+        rebuild_buttons()
+
+    # # 按键表: (text_A, text_B, action_A, action_B)
+    LAYOUT = [
+        [
+            ("M" , "M"  , toggle_mode            , toggle_mode            , "#FFC6A0"),
+            ("C" , "C"  , clear                  , clear                  , "#FDB3B3"),
+            ("H" , "H"  , show_history           , show_history           , "#DCFFA0"),
+            ("+" , "+"  , lambda: append_ch("+") , lambda: append_ch("+") , "#A4C5FF"),
+        ],
+        [
+            ("7" , "sin", lambda: append_ch("7"), lambda: append_ch("sin(") , "#FFC6A0"),
+            ("8" , "cos", lambda: append_ch("8"), lambda: append_ch("cos(") , "#FFC6A0"),
+            ("9" , "tan", lambda: append_ch("9"), lambda: append_ch("tan(") , "#FFC6A0"),
+            ("-" , "-"  , lambda: append_ch("-"), lambda: append_ch("-")    , "#A4C5FF"),
+        ],
+        [
+            # ("4" , "n!" , lambda: append_ch("4"), lambda: append_ch("factorial(")),
+            ("4" , "n!" , lambda: append_ch("4"), lambda: append_ch("!")    , "#FFC6A0"),
+            ("5" , "√x" , lambda: append_ch("5"), lambda: append_ch("sqrt("), "#FFC6A0"),
+            ("6" , "yˣ" , lambda: append_ch("6"), lambda: append_ch("^")    , "#FFC6A0"),
+            ("×" , "×"  , lambda: append_ch("×"), lambda: append_ch("×")    , "#A4C5FF"),
+        ],
+        [
+            ("1" , "π"  , lambda: append_ch("1"), lambda: append_ch("π")    , "#FFC6A0"),
+            ("2" , "ln" , lambda: append_ch("2"), lambda: append_ch("ln(")  , "#FFC6A0"),
+            ("3" , "eˣ" , lambda: append_ch("3"), lambda: append_ch("exp(") , "#FFC6A0"),
+            ("÷" , "÷"  , lambda: append_ch("÷"), lambda: append_ch("÷")    , "#A4C5FF"),
+        ],
+        [
+            ("0" , "("  , lambda: append_ch("0"), lambda: append_ch("(")    , "#FFC6A0"),
+            ("." , ")"  , lambda: append_ch("."), lambda: append_ch(")")    , "#FFC6A0"),
+            ("⌫", "⌫" , backspace             , backspace                 , "#FDB3B3"),
+            ("=" , "="  , evaluate              , evaluate                  , "#A4C5FF"),
+        ],
+    ]
+
+    btn_frame = tk.Frame(container)
+    btn_frame.pack(pady=4)
+    btn_refs = []  # list of (tk.Button, tA, tB, aA, aB, bgc)
+
+    def rebuild_buttons():
+        for b, tA, tB, aA, aB in btn_refs:
+            if state.mode == "普通":
+                b.config(text=tA, command=aA)
+            else:
+                b.config(text=tB, command=aB)
+
+    for r, row in enumerate(LAYOUT):
+        row_refs = []
+        for c, (tA, tB, aA, aB, bgc) in enumerate(row):
+            b = tk.Button(
+                btn_frame, text=tA, command=aA, width=5, height=2, bg=bgc, font=("Consolas", 11)
+            )
+            b.grid(row=r, column=c, padx=2, pady=2)
+            row_refs.append((b, tA, tB, aA, aB))
+        btn_refs.extend(row_refs)
+
+    def on_key(event):
+        k = event.keysym
+        if k == "Return":
+            evaluate()
+        elif k == "BackSpace":
+            backspace()
+        elif k == "Escape":
+            clear()
+        elif event.char in "0123456789.+-*/()^":
+            ch = event.char.replace("*", "×").replace("/", "÷")
+            append_ch(ch)
+        else:
+            return  # 其他键（方向键、Ctrl等）不拦截
+        return "break"  # 阻止 Entry 再处理一次
+
+    # 绑定到 entry，"break" 才能在默认输入前生效
+    entry.bind("<Key>", on_key)
+
+
+def show_area(root, container):
+    root.unbind("<Key>")
+    clear_frame(container)
+    tk.Button(
+        container, text="← 返回", command=lambda: show_main(root, container)
+    ).pack(anchor="w", padx=6, pady=4)
+    tk.Label(container, text="面积计算", font=("", 14, "bold")).pack(pady=(20, 10))
+    tk.Button(
+        container,
+        text="矩形",
+        width=20,
+        height=2,
+        command=lambda: show_rect(root, container),
+    ).pack(pady=8)
+    tk.Button(
+        container,
+        text="圆形",
+        width=20,
+        height=2,
+        command=lambda: show_circ(root, container),
+    ).pack(pady=8)
+
+
+def show_rect(root, container):
+    clear_frame(container)
+    tk.Button(
+        container, text="← 返回", command=lambda: show_area(root, container)
+    ).pack(anchor="w", padx=6, pady=4)
+    tk.Label(container, text="矩形面积", font=("", 13, "bold")).pack(pady=(10, 6))
+    f = tk.Frame(container)
+    f.pack()
+    tk.Label(f, text="长:").grid(row=0, column=0, sticky="e", pady=4)
+    rect_l = tk.Entry(f, width=12)
+    rect_l.grid(row=0, column=1, padx=6)
+    tk.Label(f, text="宽:").grid(row=1, column=0, sticky="e", pady=4)
+    rect_w = tk.Entry(f, width=12)
+    rect_w.grid(row=1, column=1, padx=6)
+    res = tk.Label(container, text="面积: ——", font=("", 12))
+    res.pack(pady=8)
+
+    def calc():
+        try:
+            res.config(
+                text=f"面积: {round(float(rect_l.get()) * float(rect_w.get()), 6)}"
+            )
+        except ValueError:
+            res.config(text="面积: 请输入有效数值")
+
+    tk.Button(container, text="计算", width=10, command=calc).pack()
+
+
+def show_circ(root, container):
+    clear_frame(container)
+    tk.Button(
+        container, text="← 返回", command=lambda: show_area(root, container)
+    ).pack(anchor="w", padx=6, pady=4)
+    tk.Label(container, text="圆形面积", font=("", 13, "bold")).pack(pady=(10, 6))
+    f = tk.Frame(container)
+    f.pack()
+    tk.Label(f, text="半径:").grid(row=0, column=0, sticky="e", pady=4)
+    circ_r = tk.Entry(f, width=12)
+    circ_r.grid(row=0, column=1, padx=6)
+    res = tk.Label(container, text="面积: ——", font=("", 12))
+    res.pack(pady=8)
+
+    def calc():
+        try:
+            res.config(text=f"面积: {round(pi * float(circ_r.get()) ** 2, 6)}")
+        except ValueError:
+            res.config(text="面积: 请输入有效数值")
+
+    tk.Button(container, text="计算", width=10, command=calc).pack()
+
+
+def clear_frame(frame):
+    for w in frame.winfo_children():
+        w.destroy()
 
 
 def main():
-    win = tk.Tk()
-    win.title("计算器")
-    menubar = tk.Menu(win)
+    root = tk.Tk()
+    root.title("计算器")
+    root.geometry("320x460")
+    root.resizable(False, False)
 
-    def open_rectangle():
-        rect_win = tk.Toplevel(win)
-        rect_win.title("矩形面积计算")
-        tk.Label(rect_win, text="宽:").grid(row=0, column=0)
-        we = tk.Entry(rect_win)
-        we.grid(row=0, column=1)
-        tk.Label(rect_win, text="高:").grid(row=1, column=0)
-        he = tk.Entry(rect_win)
-        he.grid(row=1, column=1)
-        tk.Label(rect_win, text="面积:").grid(row=2, column=0)
-        res = tk.Entry(rect_win)
-        res.grid(row=2, column=1)
+    container = tk.Frame(root)
+    container.pack(fill="both", expand=True)
 
-        def calc_rect():
-            a = float(we.get()) * float(he.get())
-            res.delete(0, tk.END)
-            res.insert(0, str(f"{a:.4f}"))
-
-        tk.Button(rect_win, text="计算", command=calc_rect).grid(
-            row=3, column=0, columnspan=2, pady=4
-        )
-
-    def open_circle():
-        circle_win = tk.Toplevel(win)
-        circle_win.title("圆的面积计算")
-        tk.Label(circle_win, text="半径:").grid(row=0, column=0)
-        r_ent = tk.Entry(circle_win)
-        r_ent.grid(row=0, column=1)
-        tk.Label(circle_win, text="面积:").grid(row=1, column=0)
-        res = tk.Entry(circle_win)
-        res.grid(row=1, column=1)
-
-        def calc_circle():
-            r = float(r_ent.get())
-            a = math.pi * r * r
-            res.delete(0, tk.END)
-            res.insert(0, str(f"{a:.4f}"))
-
-        tk.Button(circle_win, text="计算", command=calc_circle).grid(
-            row=2, column=0, columnspan=2, pady=4
-        )
-
-    func_menu = tk.Menu(menubar, tearoff=0)
-    func_menu.add_command(label="矩形面积计算", command=open_rectangle)
-    func_menu.add_command(label="圆的面积计算", command=open_circle)
-    menubar.add_cascade(label="面积", menu=func_menu)
-    menubar.add_command(label="退出", command=win.destroy)
-    win.config(menu=menubar)
-
-    ans = tk.Entry(win, width=24, justify="right")
-    ans.insert(0, "0")
-    ans.grid(row=0, column=0, columnspan=4, padx=6, pady=6)
-
-    ready = False
-
-    def start_new_input() -> None:
-        nonlocal ready
-        if ready:
-            ans.delete(0, tk.END)
-            ready = False
-
-    def append(t) -> None:
-        start_new_input()
-        text = ans.get()
-        if text == "0" and t not in (".", ")"):
-            ans.delete(0, tk.END)
-        ans.insert(tk.INSERT, t)
-
-    def clear() -> None:
-        ans.delete(0, tk.END)
-        ans.insert(0, "0")
-
-    def equals() -> None:
-        result = safe_eval(ans.get())
-        ans.delete(0, tk.END)
-        ans.insert(0, result)
-        nonlocal ready
-        ready = True
-
-    def on_key(event: tk.Event) -> str | None:
-        if event.keysym == "Return":
-            equals()
-            return "break"
-        if event.char and event.char in "0123456789.+-*/()":
-            append(event.char)
-            return "break"
-        if event.keysym == "Escape":
-            clear()
-            return "break"
-        return None
-
-    ans.bind("<KeyPress>", on_key)
-
-    buttons = [
-        ("7", 1, 0), ("8", 1, 1), ("9", 1, 2), ("+", 1, 3),
-        ("4", 2, 0), ("5", 2, 1), ("6", 2, 2), ("-", 2, 3),
-        ("1", 3, 0), ("2", 3, 1), ("3", 3, 2), ("*", 3, 3),
-        ("0", 4, 0), (".", 4, 1), ("(", 4, 2), ("/", 4, 3),
-        ("sin(", 5, 0), ("cos(", 5, 1),  ("tan(", 5, 2),   ("sqrt(", 5, 3),   
-        ("^", 6, 0),    ("log(", 6, 1),  ("exp(", 6, 2),   (")", 6, 3),  
-        ("C", 7, 0),    ("=", 7, 2),
-    ]
-
-    for text, r, c in buttons:
-        if text == "C":
-            cmd = clear
-        elif text == "=":
-            cmd = equals
-        elif text == "^":
-            cmd = lambda t="**": append(t)
-        else:
-            cmd = lambda t=text: append(t)
-        width = 6 if text not in ("C", "=") else 12
-        span = 1 if text not in ("C", "=") else 2
-        tk.Button(win, text=text, width=width, command=cmd).grid(
-            row=r, column=c, columnspan=span, padx=3, pady=3
-        )
-
-    win.mainloop()
+    show_main(root, container)
+    root.mainloop()
 
 
 if __name__ == "__main__":
